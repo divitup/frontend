@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEventHandler } from "react";
+import React, { useState, useEffect, ChangeEventHandler, useRef } from "react";
 import { styled } from '@mui/material/styles';
 import {
     Box,
@@ -24,7 +24,6 @@ import { Theme } from "@emotion/react";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddBoxIcon from '@mui/icons-material/AddBox';
-import SwapVertIcon from '@mui/icons-material/SwapVert';
 
 const Colors = [
     "#e57373",
@@ -37,18 +36,26 @@ const Colors = [
     "#ffc107",
 ];
 
+const TaxCell = styled(TableCell)({
+    width: "10%",
+    textAlign: 'right'
+})
 
-const CustomTextField = styled(TextField)({
-    '& .MuiInputBase-input': {
-        border: 'none',
-        fontSize: 'small',
-    },
-    '& .MuiInput-underline:before': {
-        borderBottom: 'none',
-    },
-    '& .MuiInput-underline:after': {
-        borderBottom: 'none',
-    },
+const AmountCell = styled(TableCell)({
+    width: '15%'
+})
+
+const MemberCell = styled(TableCell)({
+    textAlign: 'right',
+    width: '40%',
+})
+
+const PerMemberCell = styled(TableCell)({
+    width: "15%"
+})
+
+const DeleteCell = styled(TableCell)({
+    width: "6%"
 });
 
 const StyledSelect = styled(Select)({
@@ -69,53 +76,6 @@ const StyledSelect = styled(Select)({
     }
 })
 
-interface MemberSelectionProps {
-    selected: PersonInfo[];
-    total: PersonInfo[];
-    onSelect: (id: any) => void;
-    onUnselect: (id: number) => void;
-}
-
-function MemberSelection(props: MemberSelectionProps) {
-    const { selected, total, onSelect, onUnselect } = props;
-    return (<div>
-        {selected.map((member: PersonInfo) => (
-            <Chip
-                key={member.id}
-                label={member.name}
-                onDelete={() => {
-                    onUnselect(member.id);
-                }}
-                style={{
-                    backgroundColor: member.color,
-                    margin: "2px",
-                }}
-            />
-        ))}
-        {
-            selected.length !== total.length ?
-                <StyledSelect
-                    multiple
-                    displayEmpty
-                    labelId="demo-select-small-label"
-                    value={[...total.map(member => member.id)]}
-                    id="demo-select-small"
-                    onChange={(e) => onSelect(e.target.value)}
-                    renderValue={() => { return '' }}
-                    IconComponent={AddCircleIcon}
-                >
-                    {total.map((member) =>
-                        !member.allChecked ?
-                            <MenuItem key={member.id} value={member.id}>
-                                {member.name}
-                            </MenuItem>
-                            : null // Return null if the condition is not met
-                    )}
-                </StyledSelect> : null
-
-        }
-    </div>);
-}
 
 interface ExpenseTableTitleProps {
     addExpense: () => void;
@@ -137,33 +97,33 @@ function ExpenseTableTitle(props: ExpenseTableTitleProps) {
 
 interface ExpenseTableHeadProps {
     members: PersonInfo[],
-    onMemberCheckAllDelete: (arg0: any) => void,
-    onMemberCheckAllAdd: (arg0: any) => void,
+    removeMemberAllChecked: (index: number, member: PersonInfo) => void;
+    addMemberAllChecked: (memberId: any) => void;
     taxPercent: number,
     onTaxPercentChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>,
-    numTaxChecked: number;
     taxCheckedCnt: number;
+    totalExpenses: number;
     onTaxCheckAllClick: () => void;
-    numMemberChecked: number;
-    memberCheckedCnt: number;
-    onMemberCheckAllClick: () => void;
+    deleteAllExpenses: () => void;
 }
 
+/**
+ * Head for expense table
+ * @param ExpenseTableHeadProps
+ * @returns 
+ */
 function ExpenseTableHead(props: ExpenseTableHeadProps) {
     const {
-        members,
-        onMemberCheckAllDelete,
-        onMemberCheckAllAdd,
         taxPercent,
         onTaxPercentChange,
-        numTaxChecked,
         taxCheckedCnt,
+        totalExpenses,
         onTaxCheckAllClick,
-        numMemberChecked,
-        memberCheckedCnt,
-        onMemberCheckAllClick,
+        members,
+        removeMemberAllChecked,
+        addMemberAllChecked,
+        deleteAllExpenses
     } = props;
-
 
     useEffect(() => {
         computeMembersAllCheckedCnt()
@@ -174,21 +134,22 @@ function ExpenseTableHead(props: ExpenseTableHeadProps) {
     const computeMembersAllCheckedCnt = () => {
         const count = members.reduce((acc, member) => {
             return member.allChecked ? acc + 1 : acc;
-        }, 0); // Initial value of the accumulator is 0
-
+        }, 0);
         setMembersAllCheckedCnt(count);
     }
 
     return (
         <TableHead>
             <TableRow>
-                <TableCell>
+                {/* TAX HEAD CELL */}
+                <TaxCell>
                     <Box display="flex" justifyContent="space-between" alignItems="center">
                         <TextField
                             label="Tax"
                             id="standard-size-small"
                             size="small"
-                            value={taxPercent === 0 ? "" : taxPercent}
+                            type="number"
+                            value={taxPercent}
                             onChange={onTaxPercentChange}
                             variant="standard"
                             style={{
@@ -197,78 +158,91 @@ function ExpenseTableHead(props: ExpenseTableHeadProps) {
                         />
                         <Checkbox
                             color="primary"
-                            indeterminate={numTaxChecked > 0 && numTaxChecked < taxCheckedCnt}
-                            checked={numTaxChecked === taxCheckedCnt}
+                            indeterminate={taxCheckedCnt > 0 && taxCheckedCnt < totalExpenses}
+                            checked={taxCheckedCnt !== 0 && taxCheckedCnt === totalExpenses}
                             onChange={onTaxCheckAllClick}
                             inputProps={{
                                 "aria-label": "select all has tax",
                             }}
                         />
                     </Box>
-                </TableCell>
-                <TableCell >
+                </TaxCell>
+                {/* AMOUNT HEAD CELL */}
+                <AmountCell>
                     <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography> Amount</Typography>
+                        <Typography style={{ marginRight: '8px' }}> Amount</Typography>
                         <TableSortLabel
                             direction={"asc"}
                             onClick={() => { return "asc"; }}
                         >
-                            <SwapVertIcon sx={{ fontSize: 20, marginLeft: '8px', marginRight: '8px' }} />
                         </TableSortLabel>
                     </Box>
-                </TableCell>
-                <TableCell>
-                    <Box display="flex" justifyContent="flex-start" alignItems="center">
-                        <Typography> Members</Typography>
-                        {members.map((member: PersonInfo) => (
-                            member.allChecked ? (
-                                <Chip
-                                    key={member.id}
-                                    label={member.name}
-                                    onDelete={() => {
-                                        onMemberCheckAllDelete(member.id);
-                                    }}
-                                    style={{
-                                        backgroundColor: member.color,
-                                        margin: "2px",
-                                    }}
-                                />
-                            ) : null
-                        ))}
-                        {membersAllCheckedCnt !== members.length ?
-                            <StyledSelect
-                                multiple
-                                displayEmpty
-                                labelId="demo-select-small-label"
-                                value={members.filter(member => member.allChecked).map(member => member.id)}
-                                id="demo-select-small"
-                                onChange={(e) => onMemberCheckAllAdd(e.target.value)
-                                }
-                                renderValue={() => { return '' }}
-                                IconComponent={AddCircleIcon}
-                            >
-                                {members.map((member) =>
-                                    <MenuItem key={member.id} value={member.id} disabled={member.allChecked}>
-                                        {member.name}
-                                    </MenuItem>
-                                )}
-                            </StyledSelect> : null
+                </AmountCell>
+                {/* MEMBERS HEAD CELL */}
+                <MemberCell>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                            <Typography style={{ marginRight: '8px' }}> Members</Typography>
+                            {
+                                /* CHIPS COMPONENT */
+                                members.map((member: PersonInfo, memberIndex: number) => {
+                                    return (
+                                        member.allChecked ? <Chip
+                                            key={memberIndex}
+                                            label={member.name}
+                                            onDelete={() => {
+                                                console.log(member)
+                                                console.log(memberIndex)
+                                                removeMemberAllChecked(memberIndex, member);
+                                            }
+                                            }
+                                            style={{
+                                                backgroundColor: member.color,
+                                                margin: "2px",
+                                            }}
+                                        /> : null
+                                    );
+                                })
+                            }
+                        </Box>
+                        {
+                            /* SELECT COMPONENT */
+                            membersAllCheckedCnt !== members.length ?
+                                <StyledSelect
+                                    multiple
+                                    displayEmpty
+                                    labelId="demo-select-small-label"
+                                    value={[]}
+                                    id="demo-select-small"
+                                    onChange={(e: any) =>
+                                        addMemberAllChecked(e.target.value[0])
+                                    }
+                                    renderValue={() => { return '' }}
+                                    IconComponent={AddCircleIcon}
+                                >
+                                    {
+                                        members
+                                            .filter(member => !member.allChecked) // Implement this check based on your state structure
+                                            .map(filteredMember => (
+                                                <MenuItem key={filteredMember.id} value={filteredMember.id}>
+                                                    {filteredMember.name}
+                                                </MenuItem>
+                                            ))
+                                    }
+                                </StyledSelect> : null
                         }
-                        <Checkbox
-                            color="primary"
-                            indeterminate={
-                                numMemberChecked > 0 && numMemberChecked < memberCheckedCnt
-                            }
-                            checked={
-                                memberCheckedCnt > 0 && numMemberChecked === memberCheckedCnt
-                            }
-                            onChange={onMemberCheckAllClick}
-                            inputProps={{
-                                "aria-label": "select all members",
-                            }}
-                        />
                     </Box>
-                </TableCell>
+                </MemberCell>
+                {/* PER MEMBERS HEAD CELL */}
+                <PerMemberCell>
+                    <Typography style={{ marginRight: '8px' }}> Per Member </Typography>
+                </PerMemberCell>
+                {/* DELETE TABLE CELL */}
+                <DeleteCell>
+                    <IconButton>
+                        <DeleteIcon sx={{ fontSize: 20 }} onClick={deleteAllExpenses} />
+                    </IconButton>
+                </DeleteCell>
             </TableRow>
         </TableHead >
     );
@@ -294,7 +268,10 @@ export default function ExpenseTable(props: {
 }) {
 
     const [taxCheckedCnt, setTaxCheckedCnt] = useState<number>(0);
-    const [taxPercent, setTaxPercent] = useState<number>(0.07);
+    const [taxPercent, setTaxPercent] = useState<number>(7);
+
+    const lastInputRef = useRef(null); // Create a ref for the last input field
+    const [settingLastInput, setSettingLastInput] = useState<number>(-1);
 
     const [membersAllCheckedCnt, setMembersAllCheckedCnt] = useState<number>(0);
     const [members, setMembers] = React.useState<PersonInfo[]>([
@@ -312,8 +289,12 @@ export default function ExpenseTable(props: {
     useEffect(() => {
         console.log(expenses)
         calculateMemberTotals()
-    }, [expenses]);
-
+        if (settingLastInput > 0) {
+            console.log("setting last input");
+            (document.getElementById(`amount-${settingLastInput}`) as any).focus();
+            setSettingLastInput(-1);
+        }
+    }, [expenses, settingLastInput]);
 
     /* Remove a member from all expenses */
     const removeMemberAllChecked = (index: number, member: PersonInfo) => {
@@ -358,11 +339,8 @@ export default function ExpenseTable(props: {
     };
 
     const onTaxPercentChange = (event: any) => {
-        const inputValue = (event.target as any).value;
-        const numericValue = parseFloat(inputValue) / 100;
-        if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 1) {
-            setTaxPercent(numericValue);
-        }
+        const inputValue = parseFloat(event.target.value)
+        setTaxPercent(inputValue);
     };
 
     const onTaxCheck = (index: number) => {
@@ -423,35 +401,36 @@ export default function ExpenseTable(props: {
         }
     }
 
-    // Function to calculate the total expense for each member
+    // Function to calculate the total expense for each member including tax
     const calculateMemberTotals = () => {
         const memberTotals: { [key: number]: number } = {};
         expenses.forEach((expense) => {
+            const taxMultiplier = expense.tax ? (taxPercent / 100) + 1 : 1;
             expense.memberIds.forEach((memberId) => {
                 if (!memberTotals[memberId]) {
                     memberTotals[memberId] = 0;
                 }
-                memberTotals[memberId] += expense.amount / expense.memberIds.length;
+                memberTotals[memberId] += (expense.amount / expense.memberIds.length) * taxMultiplier;
             });
         });
-        return memberTotals;
+
+        const updatedMembers = [...members]
+        updatedMembers.forEach((member) => {
+            if (memberTotals[member.id]) {
+                member.amount = memberTotals[member.id];
+            } else {
+                member.amount = 0;
+            }
+        });
+        setMembers(updatedMembers);
     };
 
     const calculateTotalExpense = () => {
-        /*
-        return expenses.reduce((total, exp) => {
-            return total + exp.amount;
+        return expenses.reduce((total, expense) => {
+            const taxMultiplier = expense.tax ? (taxPercent / 100) + 1 : 1;
+            return total + (expense.amount * taxMultiplier);
         }, 0).toFixed(2);
-        */
-        return 0;
     };
-
-    const updateExpenseAmount = (index: number, amount: any) => {
-        const updatedExpenses = [...expenses];
-        updatedExpenses[index].amount = amount;
-        setExpenses(updatedExpenses);
-        // calculateTotalExpense();
-    }
 
     const deleteExpense = (number: number) => {
         const expensesCopy = [
@@ -460,7 +439,6 @@ export default function ExpenseTable(props: {
         ];
         setExpenses(expensesCopy);
     }
-
 
     return (
         <div style={{ display: 'flex', justifyContent: 'flex-start', flexDirection: 'row', alignItems: 'flex-start', padding: '16px' }}>
@@ -473,9 +451,17 @@ export default function ExpenseTable(props: {
                         <Typography variant="h3" component="div" sx={{ padding: '8px' }}>
                             {calculateTotalExpense()}
                         </Typography>
-                        {members.map((member) => {
+                        {members.map((member, index) => {
                             return (
-                                <Typography sx={{ fontSize: 16, padding: '4px' }}>{`${member?.name}: $${member.amount}`} </Typography>
+                                <Chip
+                                    key={index}
+                                    label={`${member?.name}: $${member.amount.toFixed(2)}`}
+                                    style={{
+                                        fontSize: '16px',
+                                        backgroundColor: member.color,
+                                        margin: "8px",
+                                    }}
+                                />
                             );
                         })
                         }
@@ -486,107 +472,27 @@ export default function ExpenseTable(props: {
                 <TableContainer sx={{ padding: '32px' }}>
                     <ExpenseTableTitle addExpense={addExpense} />
                     <Table size="small">
-
-
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>
-                                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                                        <TextField
-                                            label="Tax"
-                                            id="standard-size-small"
-                                            size="small"
-                                            value={taxPercent === 0 ? "" : taxPercent}
-                                            onChange={onTaxPercentChange}
-                                            variant="standard"
-                                            style={{
-                                                width: '40%'
-                                            }}
-                                        />
-                                        <Checkbox
-                                            color="primary"
-                                            indeterminate={taxCheckedCnt > 0 && taxCheckedCnt < taxCheckedCnt}
-                                            checked={taxCheckedCnt === taxCheckedCnt}
-                                            onChange={onTaxCheckAllClick}
-                                            inputProps={{
-                                                "aria-label": "select all has tax",
-                                            }}
-                                        />
-                                    </Box>
-                                </TableCell>
-                                <TableCell >
-                                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                                        <Typography> Amount</Typography>
-                                        <TableSortLabel
-                                            direction={"asc"}
-                                            onClick={() => { return "asc"; }}
-                                        >
-                                            <SwapVertIcon sx={{ fontSize: 20, marginLeft: '8px', marginRight: '8px' }} />
-                                        </TableSortLabel>
-                                    </Box>
-                                </TableCell>
-
-                                <TableCell>
-                                    <Box display="flex" justifyContent="flex-start" alignItems="center">
-                                        <Typography> Members</Typography>
-                                        {members.map((member: PersonInfo, memberIndex: number) => {
-                                            return (
-                                                member.allChecked ? <Chip
-                                                    key={memberIndex}
-                                                    label={member.name}
-                                                    onDelete={() => {
-                                                        removeMemberAllChecked(memberIndex, member);
-                                                    }
-                                                    }
-                                                    style={{
-                                                        backgroundColor: member.color,
-                                                        margin: "2px",
-                                                    }}
-                                                /> : null
-                                            );
-                                        })}
-
-                                        {
-                                            membersAllCheckedCnt !== members.length ?
-                                                <StyledSelect
-                                                    multiple
-                                                    displayEmpty
-                                                    labelId="demo-select-small-label"
-                                                    value={[]}
-                                                    id="demo-select-small"
-                                                    onChange={(e: any) =>
-                                                        addMemberAllChecked(e.target.value[0])
-                                                    }
-                                                    renderValue={() => { return '' }}
-                                                    IconComponent={AddCircleIcon}
-                                                >
-                                                    {
-                                                        members
-                                                            .filter(member => !member.allChecked) // Implement this check based on your state structure
-                                                            .map(filteredMember => (
-                                                                <MenuItem key={filteredMember.id} value={filteredMember.id}>
-                                                                    {filteredMember.name}
-                                                                </MenuItem>
-                                                            ))
-                                                    }
-                                                </StyledSelect> : null
-                                        }
-                                    </Box>
-                                </TableCell>
-                            </TableRow>
-                        </TableHead >
-
-
+                        <ExpenseTableHead
+                            taxPercent={taxPercent}
+                            onTaxPercentChange={onTaxPercentChange}
+                            taxCheckedCnt={taxCheckedCnt}
+                            totalExpenses={expenses.length}
+                            onTaxCheckAllClick={onTaxCheckAllClick}
+                            members={members}
+                            removeMemberAllChecked={removeMemberAllChecked}
+                            addMemberAllChecked={addMemberAllChecked}
+                            deleteAllExpenses={() => setExpenses([])}
+                        />
                         <TableBody>
                             {expenses.map((expense, index) => (
                                 <TableRow key={index}>
-                                    <TableCell align="right" style={{ width: "130px" }}>
+                                    <TaxCell>
                                         <Checkbox
                                             checked={expenses[index]["tax"]}
                                             onChange={() => onTaxCheck(index)}
                                         />
-                                    </TableCell>
-                                    <TableCell>
+                                    </TaxCell>
+                                    <AmountCell>
                                         <TextField
                                             hiddenLabel
                                             id={`amount-${index}`}
@@ -595,6 +501,7 @@ export default function ExpenseTable(props: {
                                             size="small"
                                             type="number"
                                             value={expense.amount}
+                                            ref={index === expenses.length - 1 ? lastInputRef : null}
                                             onChange={(e) =>
                                                 updateExpense(
                                                     index,
@@ -606,71 +513,88 @@ export default function ExpenseTable(props: {
                                                 if (e.key === "Enter") {
                                                     // Find the next index
                                                     const nextIndex = index + 1;
+                                                    console.log("nextIndex", nextIndex);
+                                                    console.log("expense length", expenses.length);
                                                     if (nextIndex < expenses.length) {
                                                         // Focus the next TextField
                                                         (document.getElementById(`amount-${nextIndex}`) as any).focus();
+                                                    } else {
+                                                        setSettingLastInput(nextIndex);
+                                                        addExpense();
                                                     }
                                                 }
                                             }}
-                                        />
-                                    </TableCell>
-                                    <TableCell style={{ width: "700px" }}>
-                                        {expense.memberIds.map((memberId, memberIndex) => {
-                                            console.log(expense)
-                                            console.log(members)
-                                            console.log(memberId)
-                                            console.log(memberIndex)
-                                            const member: any = members.find(
-                                                (person) => person.id === memberId
-                                            );
-                                            return (
-                                                <Chip
-                                                    key={memberIndex}
-                                                    label={member.name}
-                                                    onDelete={() => {
-                                                        removeExpenseMember(index, memberId);
-                                                    }
-                                                    }
-                                                    style={{
-                                                        backgroundColor: member.color,
-                                                        margin: "2px",
-                                                    }}
-                                                />
-                                            );
-                                        })}
-                                        {members.length !== expense.memberIds.length ?
-                                            <StyledSelect
-                                                multiple
-                                                displayEmpty
-                                                labelId="demo-select-small-label"
-                                                value={expense.memberIds}
-                                                id="demo-select-small"
-                                                onChange={(e) =>
-                                                    updateExpense(index, "memberIds", e.target.value)
+                                            onFocus={(e) => {
+                                                // If the value is 0, clear the field when it gains focus
+                                                if (e.target.value === '0') {
+                                                    updateExpense(index, "amount", '');
                                                 }
-                                                renderValue={() => { return '' }}
-                                                IconComponent={AddCircleIcon}
-                                            >
-                                                {members.map((member) =>
-                                                    !expense.memberIds.includes(member.id) ? (
-                                                        <MenuItem key={member.id} value={member.id}>
-                                                            {member.name}
-                                                        </MenuItem>
-                                                    ) : null // Return null if the condition is not met
-                                                )}
-                                            </StyledSelect> : null
-                                        }
-                                    </TableCell>
-                                    <TableCell>
+                                            }}
+                                            onBlur={(e) => {
+                                                if (e.target.value === '') {
+                                                    updateExpense(index, "amount", 0); // Reset to 0 when input is not focused and empty
+                                                }
+                                            }}
+                                        />
+                                    </AmountCell>
+                                    <MemberCell>
+                                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                                            <div>
+                                                {expense.memberIds.map((memberId, memberIndex) => {
+                                                    const member: any = members.find(
+                                                        (person) => person.id === memberId
+                                                    );
+                                                    return (
+                                                        <Chip
+                                                            key={memberIndex}
+                                                            label={member.name}
+                                                            onDelete={() => {
+                                                                removeExpenseMember(index, memberId);
+                                                            }
+                                                            }
+                                                            style={{
+                                                                backgroundColor: member.color,
+                                                                margin: "2px",
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                            {members.length !== expense.memberIds.length ?
+                                                <StyledSelect
+                                                    multiple
+                                                    displayEmpty
+                                                    labelId="demo-select-small-label"
+                                                    value={expense.memberIds}
+                                                    id="demo-select-small"
+                                                    onChange={(e) =>
+                                                        updateExpense(index, "memberIds", e.target.value)
+                                                    }
+                                                    renderValue={() => { return '' }}
+                                                    IconComponent={AddCircleIcon}
+                                                >
+                                                    {members.map((member) =>
+                                                        !expense.memberIds.includes(member.id) ? (
+                                                            <MenuItem key={member.id} value={member.id}>
+                                                                {member.name}
+                                                            </MenuItem>
+                                                        ) : null // Return null if the condition is not met
+                                                    )}
+                                                </StyledSelect> : null
+                                            }
+                                        </Box>
+                                    </MemberCell>
+                                    <PerMemberCell style={{ width: "14%" }}>
                                         {expense.memberIds.length > 0
-                                            ? (expense.amount / expense.memberIds.length).toFixed(3)
+                                            ? ((expense.amount / expense.memberIds.length) *
+                                                (expense.tax ? (taxPercent / 100) + 1 : 1)).toFixed(2)
                                             : "0.00"}
-                                    </TableCell>
-                                    <TableCell>
+                                    </PerMemberCell>
+                                    <DeleteCell>
                                         <IconButton>
                                             <DeleteIcon sx={{ fontSize: 20 }} onClick={() => { deleteExpense(index) }} />
                                         </IconButton>
-                                    </TableCell>
+                                    </DeleteCell>
                                 </TableRow>
                             ))}
                         </TableBody>
