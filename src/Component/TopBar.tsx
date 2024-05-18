@@ -1,12 +1,23 @@
-import { AppBar, Typography, IconButton, Toolbar } from '@mui/material';
+import { AppBar, Typography, CardMedia, IconButton, ImageList, ImageListItem, Toolbar } from '@mui/material';
 import Brightness5Icon from '@mui/icons-material/Brightness5';
+import myImage from './logo.jpeg'; // Adjust the path accordingly
+
 
 export default function TopBar({ theme, toggleTheme }: any) {
     return (
         <AppBar position="static" elevation={0} sx={{
             backgroundColor: theme.palette.grey[200], // slightly darker for the sidebar
         }}>
-            <Toolbar>
+            <Toolbar sx={{ display: 'flex', justifyContent: "flex-start" }}>
+                {/*
+                <CardMedia
+                    component="img"
+                    height="40"
+                    width="40"
+                    image={myImage}
+                    alt="My Image"
+                    sx={{ objectFit: 'contain', margin: '0px' }} // Adjust the image to cover the area
+    />*/}
                 <Typography variant="h4" style={{
                     flexGrow: 1, textAlign: 'left',
                     color: theme.palette.primary.main,

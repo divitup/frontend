@@ -5,6 +5,7 @@ import ExpenseTable from './Component/Table';
 import TopBar from './Component/TopBar';
 
 // @TODO: add light/dark theme switch
+// @TODO: member add/remove functionality
 
 const baseTheme = createTheme({
   typography: {
