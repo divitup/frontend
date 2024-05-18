@@ -26,6 +26,7 @@ import AddBoxIcon from "@mui/icons-material/AddBox";
 import { formatTo2Decimal } from "./utility";
 import { PersonInfo, Expense } from "./interface";
 import MemberCard from "./MemberCard";
+import ImageUploader from "./ImageUploader";
 
 const Colors = [
   "#e57373",
@@ -121,10 +122,18 @@ function ExpenseTableTitle(props: ExpenseTableTitleProps) {
       >
         Expenses
       </Typography>
-      <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
         <IconButton onClick={addExpense} sx={{ padding: "0px", margin: "0px" }}>
           <AddBoxIcon sx={{ fontSize: 20 }} />
         </IconButton>
+        <ImageUploader />
       </div>
     </div>
   );
