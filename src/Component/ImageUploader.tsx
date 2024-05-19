@@ -11,6 +11,8 @@ import {
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
 import { styled } from "@mui/system";
 import { uploadReceiptImage } from "../Service/api";
+import { extractExpensesFromReceipt } from "./utility";
+import { Expense } from "./interface";
 
 // Styled image upload input component
 const Input = styled("input")({
@@ -19,7 +21,9 @@ const Input = styled("input")({
 
 // Allow user to upload an receipt image to call backend to extract expenses,
 // then retrieves a backend job id for querying job status.
-export default function ImageUploader() {
+export default function ImageUploader(props: {
+  addExpenses: (expenses: Expense[]) => void;
+}) {
   const [open, setOpen] = useState(false); // State to control the dialog visibility
   const [selectedImage, setSelectedImage] = useState<File | null>(null); // State to store the selected image file
   const [preview, setPreview] = useState<string | null>(null); // State to store the image preview URL
@@ -62,6 +66,12 @@ export default function ImageUploader() {
     if (!selectedImage) return;
     try {
       const response = await uploadReceiptImage(selectedImage); // Upload the image to the backend
+      console.log(response); // Print the response from the backend
+      if (response?.result) {
+        console.error("Error: did not receive receipt scan result", response);
+      }
+      const newExpenses = extractExpensesFromReceipt((response as any).result);
+      props.addExpenses(newExpenses);
       setMessage("Image uploaded successfully"); // Set success message
       handleClose(); // Close the dialog
     } catch (error) {
