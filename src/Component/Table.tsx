@@ -1,5 +1,6 @@
-import React, { useState, useEffect, ChangeEventHandler, useRef } from "react";
-import { Theme, styled } from "@mui/material/styles";
+// @TODO: remove any top empty lines upon adding valid expenses
+import React, { useState, useEffect, useRef } from "react";
+import { Theme } from "@mui/material/styles";
 import {
   Box,
   Card,
@@ -8,26 +9,30 @@ import {
   Checkbox,
   IconButton,
   MenuItem,
-  Select,
   Table,
   TableBody,
-  TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
-  TableSortLabel,
   TextField,
   Typography,
-  Button,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
-import AddBoxIcon from "@mui/icons-material/AddBox";
 import { formatTo2Decimal } from "./utility";
 import { PersonInfo, Expense } from "./interface";
 import MemberCard from "./MemberCard";
-import ImageUploader from "./ImageUploader";
+import {
+  StyledTableRow,
+  TaxCell,
+  AmountCell,
+  MemberCell,
+  PerMemberCell,
+  DeleteCell,
+  StyledSelect,
+} from "./StyledTableComponents";
+import ExpenseTableHead from "./TableHead";
+import ExpenseTableTitle from "./TableTitle";
 
+// Colors for member chips
 const Colors = [
   "#e57373",
   "#9fa8da",
@@ -38,283 +43,6 @@ const Colors = [
   "#4caf50",
   "#ffc107",
 ];
-
-const StyledTableRow = styled(TableRow)({
-  display: "flex",
-  alignItems: "stretch", // Ensure cells stretch to the row height
-  "& > *": {
-    display: "flex",
-    alignItems: "center", // Center items vertically
-  },
-});
-
-const TaxCell = styled(TableCell)({
-  display: "flex",
-  alignItems: "center",
-  width: "15%",
-  textAlign: "right",
-});
-
-const AmountCell = styled(TableCell)({
-  width: "15%",
-  display: "flex",
-  alignItems: "center",
-});
-
-const MemberCell = styled(TableCell)({
-  display: "flex", // Use flex layout
-  flexWrap: "wrap", // Allow wrapping of child elements
-  textAlign: "right",
-  width: "50%",
-  maxWidth: "40%",
-  padding: "8px", // Adjust padding to ensure consistent spacing
-});
-
-const PerMemberCell = styled(TableCell)({
-  display: "flex",
-  width: "20%",
-  alignItems: "center",
-});
-
-const DeleteCell = styled(TableCell)({
-  display: "flex",
-  width: "10%",
-});
-
-const StyledSelect = styled(Select)({
-  padding: "2px",
-  border: "none",
-  "& .MuiSelect-select": {
-    padding: "0 24px 0 0", // Adjust padding as needed, keeping space for the icon
-    minWidth: "auto", // To make the Select as small as possible
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    border: "none",
-  },
-  "&:hover .MuiOutlinedInput-notchedOutline": {
-    border: "none",
-  },
-  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-    border: "none",
-  },
-});
-
-interface ExpenseTableTitleProps {
-  addExpense: () => void;
-}
-
-function ExpenseTableTitle(props: ExpenseTableTitleProps) {
-  const { addExpense } = props;
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: "16px",
-      }}
-    >
-      <Typography
-        sx={{ fontSize: 20, padding: "0px", margin: "0px" }}
-        color="text.secondary"
-        gutterBottom
-      >
-        Expenses
-      </Typography>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <IconButton onClick={addExpense} sx={{ padding: "0px", margin: "0px" }}>
-          <AddBoxIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-        <ImageUploader />
-      </div>
-    </div>
-  );
-}
-
-interface ExpenseTableHeadProps {
-  theme: Theme;
-  members: PersonInfo[];
-  removeMemberAllChecked: (index: number, member: PersonInfo) => void;
-  addMemberAllChecked: (memberId: any) => void;
-  taxPercent: number;
-  onTaxPercentChange: ChangeEventHandler<
-    HTMLInputElement | HTMLTextAreaElement
-  >;
-  taxCheckedCnt: number;
-  totalExpenses: number;
-  onTaxCheckAllClick: () => void;
-  deleteAllExpenses: () => void;
-}
-
-/**
- * Head for expense table
- * @param ExpenseTableHeadProps
- * @returns
- */
-function ExpenseTableHead(props: ExpenseTableHeadProps) {
-  const {
-    theme,
-    taxPercent,
-    onTaxPercentChange,
-    taxCheckedCnt,
-    totalExpenses,
-    onTaxCheckAllClick,
-    members,
-    removeMemberAllChecked,
-    addMemberAllChecked,
-    deleteAllExpenses,
-  } = props;
-
-  useEffect(() => {
-    computeMembersAllCheckedCnt();
-  }, [members]);
-
-  const [membersAllCheckedCnt, setMembersAllCheckedCnt] = useState<number>(0);
-
-  const computeMembersAllCheckedCnt = () => {
-    const count = members.reduce((acc, member) => {
-      return member.allChecked ? acc + 1 : acc;
-    }, 0);
-    setMembersAllCheckedCnt(count);
-  };
-
-  return (
-    <TableHead sx={{ backgroundColor: theme.palette.secondary.main }}>
-      <StyledTableRow>
-        {/* TAX HEAD CELL */}
-        <TaxCell>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <TextField
-              label="Tax"
-              id="standard-size-small"
-              size="small"
-              type="number"
-              value={taxPercent}
-              onChange={onTaxPercentChange}
-              variant="standard"
-              style={{
-                width: "40%",
-              }}
-            />
-            <Checkbox
-              color="primary"
-              indeterminate={taxCheckedCnt > 0 && taxCheckedCnt < totalExpenses}
-              checked={taxCheckedCnt !== 0 && taxCheckedCnt === totalExpenses}
-              onChange={onTaxCheckAllClick}
-              inputProps={{
-                "aria-label": "select all has tax",
-              }}
-            />
-          </Box>
-        </TaxCell>
-        {/* AMOUNT HEAD CELL */}
-        <AmountCell>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography style={{ marginRight: "8px" }}> Amount</Typography>
-            <TableSortLabel
-              direction={"asc"}
-              onClick={() => {
-                return "asc";
-              }}
-            ></TableSortLabel>
-          </Box>
-        </AmountCell>
-        {/* MEMBERS HEAD CELL */}
-        <MemberCell>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography style={{ marginRight: "8px" }}> Members</Typography>
-              <div>
-                {
-                  /* CHIPS COMPONENT */
-                  members.map((member: PersonInfo, memberIndex: number) => {
-                    return member.allChecked ? (
-                      <Chip
-                        key={memberIndex}
-                        label={member.name}
-                        onDelete={() => {
-                          console.log(member);
-                          console.log(memberIndex);
-                          removeMemberAllChecked(memberIndex, member);
-                        }}
-                        style={{
-                          backgroundColor: member.color,
-                          margin: "2px",
-                        }}
-                      />
-                    ) : null;
-                  })
-                }
-              </div>
-            </Box>
-            {
-              /* SELECT COMPONENT */
-              membersAllCheckedCnt !== members.length ? (
-                <StyledSelect
-                  multiple
-                  displayEmpty
-                  labelId="demo-select-small-label"
-                  value={[]}
-                  id="demo-select-small"
-                  onChange={(e: any) => addMemberAllChecked(e.target.value[0])}
-                  renderValue={() => {
-                    return "";
-                  }}
-                  IconComponent={AddCircleIcon}
-                >
-                  {members
-                    .filter((member) => !member.allChecked) // Implement this check based on your state structure
-                    .map((filteredMember) => (
-                      <MenuItem
-                        key={filteredMember.id}
-                        value={filteredMember.id}
-                      >
-                        {filteredMember.name}
-                      </MenuItem>
-                    ))}
-                </StyledSelect>
-              ) : null
-            }
-          </Box>
-        </MemberCell>
-        {/* PER MEMBERS HEAD CELL */}
-        <PerMemberCell>
-          <Typography style={{ marginRight: "8px" }}> Per Member </Typography>
-        </PerMemberCell>
-        {/* DELETE TABLE CELL */}
-        <DeleteCell>
-          <IconButton>
-            <DeleteIcon sx={{ fontSize: 20 }} onClick={deleteAllExpenses} />
-          </IconButton>
-        </DeleteCell>
-      </StyledTableRow>
-    </TableHead>
-  );
-}
 
 export default function ExpenseTable(props: {
   theme: Theme;
@@ -329,23 +57,58 @@ export default function ExpenseTable(props: {
   const [settingLastInput, setSettingLastInput] = useState<number>(-1);
 
   const [membersAllCheckedCnt, setMembersAllCheckedCnt] = useState<number>(0);
-  const [members, setMembers] = React.useState<PersonInfo[]>([
-    { id: 0, name: "Ao Wang", amount: 0, color: Colors[0], allChecked: false },
-    {
-      id: 1,
-      name: "Xiaoheng Xia",
-      amount: 0,
-      color: Colors[1],
-      allChecked: false,
-    },
-    { id: 2, name: "Hanyu Xu", amount: 0, color: Colors[2], allChecked: false },
-  ]);
+  const [members, setMembers] = useState<PersonInfo[]>(() => {
+    const savedMembers = localStorage.getItem("members");
+    return savedMembers
+      ? JSON.parse(savedMembers)
+      : [
+          {
+            id: 0,
+            name: "Ao Wang",
+            amount: 0,
+            color: Colors[0],
+            allChecked: false,
+          },
+          {
+            id: 1,
+            name: "Xiaoheng Xia",
+            amount: 0,
+            color: Colors[1],
+            allChecked: false,
+          },
+          {
+            id: 2,
+            name: "Hanyu Xu",
+            amount: 0,
+            color: Colors[2],
+            allChecked: false,
+          },
+          {
+            id: 3,
+            name: "Ye Yuan",
+            amount: 0,
+            color: Colors[3],
+            allChecked: false,
+          },
+        ];
+  });
 
-  const [expenses, setExpenses] = React.useState<Expense[]>([
-    { tax: false, amount: 0, memberIds: [] },
-    { tax: false, amount: 0, memberIds: [] },
-    { tax: false, amount: 0, memberIds: [] },
-  ]);
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const savedExpenses = localStorage.getItem("expenses");
+    return savedExpenses
+      ? JSON.parse(savedExpenses)
+      : [
+          { tax: false, amount: 0, memberIds: [] },
+          { tax: false, amount: 0, memberIds: [] },
+          { tax: false, amount: 0, memberIds: [] },
+        ];
+  });
+
+  // Save state to local storage when expenses or members change
+  useEffect(() => {
+    localStorage.setItem("expenses", JSON.stringify(expenses));
+    localStorage.setItem("members", JSON.stringify(members));
+  }, [expenses, members]);
 
   useEffect(() => {
     console.log(expenses);
@@ -419,7 +182,7 @@ export default function ExpenseTable(props: {
     if (taxCheckedCnt === expenses.length) {
       // unselect all
       setTaxCheckedCnt(0);
-      const updatedExpenses = expenses.map((expense) => ({
+      const updatedExpenses = expenses.map((expense: any) => ({
         ...expense,
         tax: false,
       }));
@@ -428,7 +191,7 @@ export default function ExpenseTable(props: {
     }
     // set tax checked count to equal to total expenses count
     setTaxCheckedCnt(expenses.length);
-    const updatedExpenses = expenses.map((expense) => ({
+    const updatedExpenses = expenses.map((expense: any) => ({
       ...expense,
       tax: true,
     }));
@@ -436,11 +199,15 @@ export default function ExpenseTable(props: {
   };
 
   const findMember = (memberId: number) => {
-    return members.find((member) => member.id === memberId);
+    return members.find((member: any) => member.id === memberId);
   };
 
   const addExpense = () => {
     setExpenses([...expenses, { tax: false, amount: 0, memberIds: [] }]);
+  };
+
+  const addExpenses = (newExpenses: Expense[]) => {
+    setExpenses([...expenses, ...newExpenses]);
   };
 
   const updateExpense = (index: number, field: keyof Expense, value: any) => {
@@ -571,7 +338,10 @@ export default function ExpenseTable(props: {
       {/* EXPENSE TABLE */}
       <Card sx={{ margin: 2, width: "100%", mb: 2 }}>
         <TableContainer sx={{ padding: "32px" }}>
-          <ExpenseTableTitle addExpense={addExpense} />
+          <ExpenseTableTitle
+            addExpense={addExpense}
+            addExpenses={addExpenses}
+          />
           <Table size="small">
             <ExpenseTableHead
               theme={theme}
