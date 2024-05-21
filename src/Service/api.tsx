@@ -1,5 +1,5 @@
 import axios from "axios";
-import { UploadReceiptResponse } from "../Component/interface";
+import { UploadImageResult } from "../Component/interface";
 
 // Base URL for the API
 let baseURL = "http://127.0.0.1:5000/";
@@ -19,7 +19,7 @@ export const fetchHelloMessage = async () => {
 // Function to upload an image to the backend server
 export const uploadReceiptImage = async (
   file: File
-): Promise<UploadReceiptResponse> => {
+): Promise<UploadImageResult> => {
   const reader = new FileReader();
 
   return new Promise((resolve, reject) => {
@@ -47,4 +47,18 @@ export const uploadReceiptImage = async (
     // Convert image file to Data URL (base64)
     reader.readAsDataURL(file);
   });
+};
+
+// Function to get the result of an image processing job from the backend
+export const getReceiptProcessingStatus = async (sessionId: string) => {
+  try {
+    const response = await axios.get(baseURL + "api/v1/result", {
+      params: { session_id: sessionId },
+    });
+    console.log(response.data);
+    return response.data; // Returns the result or error from the server
+  } catch (error) {
+    console.error("Failed to fetch processing result:", error);
+    throw error; // Rethrows the error to be handled by the caller
+  }
 };

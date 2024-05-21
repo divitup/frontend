@@ -30,3 +30,10 @@ export interface PurchasedItem {
   item_cost: string;
   item_name: string;
 }
+
+export interface UploadImageResult {
+  session_id?: string;
+  status?: string;
+  error?: string;
+  details?: string;
+}

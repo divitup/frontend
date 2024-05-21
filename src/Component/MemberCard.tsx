@@ -48,7 +48,7 @@ export default function MemberCard(props: MemberCardProps) {
   return (
     <Card sx={{ margin: 2, padding: "16px" }}>
       <CardContent>
-        <Typography sx={{ fontSize: 20 }} color="text.secondary" gutterBottom>
+        <Typography sx={{ fontSize: 20 }} color="text.primary" gutterBottom>
           Members
         </Typography>
         {members.map((member, index) => {

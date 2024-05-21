@@ -44,19 +44,27 @@ const Colors = [
   "#ffc107",
 ];
 
+// Main component for displaying and managing expenses
 export default function ExpenseTable(props: {
   theme: Theme;
   toggleTheme: any;
 }) {
   const { theme, toggleTheme } = props;
 
+  // Track how many expenses has tax
   const [taxCheckedCnt, setTaxCheckedCnt] = useState<number>(0);
+  // Tax Percentage for the expenses
   const [taxPercent, setTaxPercent] = useState<number>(7);
 
-  const lastInputRef = useRef(null); // Create a ref for the last input field
+  // Ref for the last input field, this is used for automatically
+  // setting focus
+  const lastInputRef = useRef(null);
   const [settingLastInput, setSettingLastInput] = useState<number>(-1);
 
+  // Track how many members are checked for all expenses
   const [membersAllCheckedCnt, setMembersAllCheckedCnt] = useState<number>(0);
+
+  // Members listed
   const [members, setMembers] = useState<PersonInfo[]>(() => {
     const savedMembers = localStorage.getItem("members");
     return savedMembers
@@ -307,11 +315,7 @@ export default function ExpenseTable(props: {
       <div style={{ width: "30%" }}>
         <Card sx={{ margin: 2, padding: "16px" }}>
           <CardContent>
-            <Typography
-              sx={{ fontSize: 20 }}
-              color="text.secondary"
-              gutterBottom
-            >
+            <Typography sx={{ fontSize: 20 }} color="text.primary" gutterBottom>
               Total Expenses
             </Typography>
             <Typography

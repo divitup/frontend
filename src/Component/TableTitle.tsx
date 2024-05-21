@@ -23,7 +23,7 @@ export default function ExpenseTableTitle(props: ExpenseTableTitleProps) {
     >
       <Typography
         sx={{ fontSize: 20, padding: "0px", margin: "0px" }}
-        color="text.secondary"
+        color="text.primary"
         gutterBottom
       >
         Expenses
